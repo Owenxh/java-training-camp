@@ -15,6 +15,7 @@
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
+        <seata.version>1.4.2</seata.version>
     </properties>
 
     <dependencies>
@@ -84,6 +85,11 @@
             <scope>test</scope>
         </dependency>
 
+        <dependency>
+            <groupId>io.seata</groupId>
+            <artifactId>seata-all</artifactId>
+            <version>${seata.version}</version>
+        </dependency>
     </dependencies>
 
     <build>

@@ -21,12 +21,15 @@ import com.acme.middleware.rpc.loadbalancer.ServiceInstanceSelector;
 import com.acme.middleware.rpc.service.ServiceInstance;
 import com.acme.middleware.rpc.service.discovery.ServiceDiscovery;
 import io.netty.channel.ChannelFuture;
+import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nonnull;
+import java.io.IOException;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Function;
 
 import static com.acme.middleware.rpc.client.ExchangeFuture.createExchangeFuture;
 import static com.acme.middleware.rpc.client.ExchangeFuture.removeExchangeFuture;
@@ -47,15 +50,48 @@ public class ServiceInvocationHandler implements InvocationHandler {
 
     private final ServiceInstanceSelector selector;
 
+    private final List<RpcRequestInterceptor> interceptors;
+
     public ServiceInvocationHandler(String serviceName, RpcClient rpcClient) {
+        this(serviceName, rpcClient, null);
+    }
+
+    public ServiceInvocationHandler(String serviceName, RpcClient rpcClient, Collection<RpcRequestInterceptor> interceptors) {
         this.serviceName = serviceName;
         this.rpcClient = rpcClient;
         this.serviceDiscovery = rpcClient.getServiceRegistry();
         this.selector = rpcClient.getSelector();
+        if (interceptors == null || interceptors.size() == 0) {
+            this.interceptors = new CopyOnWriteArrayList<>();
+        } else {
+            this.interceptors = new CopyOnWriteArrayList<>(interceptors);
+        }
+    }
+
+    public void addRequestInterceptor(RpcRequestInterceptor interceptor) {
+        if (interceptor != null) {
+            // TODO check duplicated interceptor by override equals & hashCode
+            boolean exist = false;
+            for (RpcRequestInterceptor item : this.interceptors) {
+                if (item == interceptor) {
+                    exist = true;
+                    break;
+                }
+            }
+            if (!exist) {
+                this.interceptors.add(interceptor);
+            }
+        }
+    }
+
+    public void removeRequestInterceptor(RpcRequestInterceptor interceptor) {
+        if (interceptor != null) {
+            this.interceptors.remove(interceptor);
+        }
     }
 
     @Override
-    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+    public Object invoke(Object proxy, Method method, Object[] args) {
         if (isObjectDeclaredMethod(method)) {
             // 本地处理
             return handleObjectMethod(proxy, method, args);
@@ -63,8 +99,8 @@ public class ServiceInvocationHandler implements InvocationHandler {
 
         // 非 Object 方法实行远程调用
         InvocationRequest request = createRequest(method, args);
-
-        return execute(request, proxy);
+        RpcRequestExecution execution = new InternalRpcRequestExecution((InvocationRequest req) -> execute(req, proxy));
+        return execution.execute(request);
     }
 
     private Object execute(InvocationRequest request, Object proxy) {
@@ -128,5 +164,27 @@ public class ServiceInvocationHandler implements InvocationHandler {
 
     private boolean isObjectDeclaredMethod(Method method) {
         return Object.class == method.getDeclaringClass();
+    }
+
+    private class InternalRpcRequestExecution implements RpcRequestExecution {
+
+        private final Iterator<RpcRequestInterceptor> iterator;
+        private final Function<InvocationRequest, Object> fn;
+
+        public InternalRpcRequestExecution(Function<InvocationRequest, Object> fn) {
+            this.iterator = interceptors.iterator();
+            this.fn = fn;
+        }
+
+        @Override
+        public Object execute(@NotNull InvocationRequest request) {
+            if (this.iterator.hasNext()) {
+                RpcRequestInterceptor nextInterceptor = this.iterator.next();
+                return nextInterceptor.intercept(request, this);
+            }
+            else {
+                return fn.apply(request);
+            }
+        }
     }
 }
