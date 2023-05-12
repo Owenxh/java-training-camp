@@ -21,7 +21,7 @@ import java.util.Objects;
  */
 public class TransactionPropagationRequestInterceptor implements RpcRequestInterceptor {
 
-    private final Logger log = LoggerFactory.getLogger(TransactionPropagationRequestInterceptor.class);
+    private static final Logger log = LoggerFactory.getLogger(TransactionPropagationRequestInterceptor.class);
 
     @Override
     public Object intercept(@NotNull InvocationRequest request, @NotNull RpcRequestExecution execution) {
@@ -104,21 +104,21 @@ public class TransactionPropagationRequestInterceptor implements RpcRequestInter
             return rpcXid;
         }
 
-        private String metaKey(String key) {
-            return TransactionPropagationRequestInterceptor.class.getName() + key;
+        private String resolveKey(String key) {
+            return TransactionPropagationRequestInterceptor.class.getName() + '.' + key;
         }
 
         @SuppressWarnings("unchecked")
         public <T> T get(String key) {
-            return (T) delegate.getMetadata().get(metaKey(key));
+            return (T) delegate.getMetadata().get(resolveKey(key));
         }
 
         public void set(String key, String value) {
-            delegate.getMetadata().put(metaKey(key), value);
+            delegate.getMetadata().put(resolveKey(key), value);
         }
 
         public void remove(String key) {
-            delegate.getMetadata().remove(metaKey(key));
+            delegate.getMetadata().remove(resolveKey(key));
         }
     }
 
