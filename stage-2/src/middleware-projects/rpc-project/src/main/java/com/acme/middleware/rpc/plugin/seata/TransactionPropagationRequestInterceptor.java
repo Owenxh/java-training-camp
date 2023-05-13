@@ -60,7 +60,7 @@ public class TransactionPropagationRequestInterceptor implements RpcRequestInter
             if (bind) {
                 BranchType previousBranchType = RootContext.getBranchType();
                 String unbindXid = RootContext.unbind();
-                if (BranchType.TCC == previousBranchType) {
+                if (BranchType.TCC.equals(previousBranchType)) {
                     RootContext.unbindBranchType();
                 }
                 if (log.isDebugEnabled()) {
@@ -72,7 +72,7 @@ public class TransactionPropagationRequestInterceptor implements RpcRequestInter
                     if (unbindXid != null) {
                         RootContext.bind(unbindXid);
                         log.warn("bind xid [{}] back to RootContext", unbindXid);
-                        if (BranchType.TCC == previousBranchType) {
+                        if (BranchType.TCC.equals(previousBranchType)) {
                             RootContext.bindBranchType(BranchType.TCC);
                             log.warn("bind branchType [{}] back to RootContext", previousBranchType);
                         }

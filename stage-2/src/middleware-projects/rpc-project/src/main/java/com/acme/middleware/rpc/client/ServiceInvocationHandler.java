@@ -23,12 +23,9 @@ import com.acme.middleware.rpc.service.discovery.ServiceDiscovery;
 import io.netty.channel.ChannelFuture;
 import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nonnull;
-import java.io.IOException;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.util.*;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Function;
 
 import static com.acme.middleware.rpc.client.ExchangeFuture.createExchangeFuture;
@@ -56,37 +53,15 @@ public class ServiceInvocationHandler implements InvocationHandler {
         this(serviceName, rpcClient, null);
     }
 
-    public ServiceInvocationHandler(String serviceName, RpcClient rpcClient, Collection<RpcRequestInterceptor> interceptors) {
+    public ServiceInvocationHandler(String serviceName, RpcClient rpcClient, List<RpcRequestInterceptor> interceptors) {
         this.serviceName = serviceName;
         this.rpcClient = rpcClient;
         this.serviceDiscovery = rpcClient.getServiceRegistry();
         this.selector = rpcClient.getSelector();
         if (interceptors == null || interceptors.size() == 0) {
-            this.interceptors = new CopyOnWriteArrayList<>();
+            this.interceptors = Collections.emptyList();
         } else {
-            this.interceptors = new CopyOnWriteArrayList<>(interceptors);
-        }
-    }
-
-    public void addRequestInterceptor(RpcRequestInterceptor interceptor) {
-        if (interceptor != null) {
-            // TODO check duplicated interceptor by override equals & hashCode
-            boolean exist = false;
-            for (RpcRequestInterceptor item : this.interceptors) {
-                if (item == interceptor) {
-                    exist = true;
-                    break;
-                }
-            }
-            if (!exist) {
-                this.interceptors.add(interceptor);
-            }
-        }
-    }
-
-    public void removeRequestInterceptor(RpcRequestInterceptor interceptor) {
-        if (interceptor != null) {
-            this.interceptors.remove(interceptor);
+            this.interceptors = Collections.unmodifiableList(interceptors);
         }
     }
 
