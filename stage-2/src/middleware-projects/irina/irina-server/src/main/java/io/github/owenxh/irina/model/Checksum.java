@@ -1,9 +1,8 @@
 package io.github.owenxh.irina.model;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
+
+import java.util.function.Supplier;
 
 /**
  * Checksum
@@ -12,9 +11,8 @@ import lombok.ToString;
  * @since 1.0
  */
 @Getter
-@Setter
 @ToString
-@AllArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class Checksum {
 
     /**
@@ -26,4 +24,8 @@ public class Checksum {
      * The hash value that applying the {@link #algorithm} to the original content.
      */
     private String hash;
+
+    public static Checksum of(Algorithm algorithm, Supplier<byte[]> supplier) {
+        return new Checksum(algorithm, algorithm.hash(supplier.get()));
+    }
 }

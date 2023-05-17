@@ -44,7 +44,10 @@ public class ConfigChangedEvent {
         return new ConfigChangedEvent(null, config, Operation.ADD);
     }
 
-    public static ConfigChangedEvent configUpdated(Config oldConfig, Config newConfig) {
+    public static ConfigChangedEvent configChangedEvent(Config oldConfig, Config newConfig) {
+        if (oldConfig == null) {
+            return configCreated(newConfig);
+        }
         return new ConfigChangedEvent(oldConfig, newConfig, Operation.UPDATE);
     }
 

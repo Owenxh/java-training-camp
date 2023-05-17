@@ -1,9 +1,18 @@
 package io.github.owenxh.irina.model;
 
+import com.alibaba.fastjson2.TypeReference;
+import com.google.common.collect.Maps;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.support.PropertiesLoaderUtils;
+import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
+import org.springframework.util.CollectionUtils;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
 /**
  * Type of the config content
@@ -13,8 +22,41 @@ import java.util.Map;
  */
 public enum Type {
 
-    JSON,
-    XML;
+    JSON {
+        @Override
+        public Map<String, String> unmarshall(@NonNull String content) {
+            return com.alibaba.fastjson2.JSON.parseObject(content, new TypeReference<Map<String, String>>() {});
+        }
+
+        @Override
+        public String marshall(@NonNull Map<String, String> kvs) {
+            return com.alibaba.fastjson2.JSON.toJSONString(kvs);
+        }
+    },
+
+    PROPERTIES {
+        @Override
+        public Map<String, String> unmarshall(@NonNull String content) throws IOException {
+            Properties properties = PropertiesLoaderUtils
+                    .loadProperties(new ByteArrayResource(content.getBytes(StandardCharsets.UTF_8)));
+            return Maps.fromProperties(properties);
+        }
+
+        @Override
+        public String marshall(@NonNull Map<String, String> kvs) {
+            if (CollectionUtils.isEmpty(kvs)) {
+                return "";
+            }
+            StringBuilder builder = new StringBuilder(kvs.size() * 16);
+            for (Map.Entry<String, String> kv : kvs.entrySet()) {
+                builder.append(kv.getKey())
+                        .append("=")
+                        .append(kv.getValue())
+                        .append('\n');
+            }
+            return builder.toString();
+        }
+    };
 
     private static final Map<String, Type> mappings = new HashMap<>();
 
@@ -32,5 +74,9 @@ public enum Type {
     public boolean matches(String type) {
         return this.name().equals(type);
     }
+
+    public abstract Map<String, String> unmarshall(@NonNull String content) throws IOException;
+
+    public abstract String marshall(@NonNull Map<String, String> kvs);
 
 }

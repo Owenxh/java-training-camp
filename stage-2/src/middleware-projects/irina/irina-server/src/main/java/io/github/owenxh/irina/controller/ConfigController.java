@@ -22,17 +22,17 @@ public class ConfigController {
         this.service = configService;
     }
 
-    @PostMapping("config")
-    public void save(@RequestBody ConfigRequest req) {
-        service.save(req);
+    @PostMapping("/config")
+    public void save(@RequestBody Config config) {
+        service.save(config);
     }
 
-    @DeleteMapping("config")
+    @DeleteMapping("/config")
     public void removeConfig(@RequestParam(name = "dataId") String dataId) {
         service.delete(dataId);
     }
 
-    @GetMapping("config")
+    @GetMapping("/config")
     public ResponseEntity<Config> getConfig(@RequestParam(name = "dataId") String dataId) {
         Config config = service.get(dataId);
         if (config == null) {

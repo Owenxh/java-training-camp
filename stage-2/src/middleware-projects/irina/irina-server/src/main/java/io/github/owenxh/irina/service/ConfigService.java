@@ -3,6 +3,7 @@ package io.github.owenxh.irina.service;
 import io.github.owenxh.irina.event.ConfigChangedEvent;
 import io.github.owenxh.irina.model.*;
 import io.github.owenxh.irina.repository.ConfigRepository;
+import lombok.extern.slf4j.Slf4j;
 import ma.glasnost.orika.MapperFacade;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -16,6 +17,7 @@ import javax.annotation.Nonnull;
  * @author Owen.Yuan
  * @since 1.0
  */
+@Slf4j
 @Service
 public class ConfigService implements ApplicationEventPublisherAware {
 
@@ -33,23 +35,15 @@ public class ConfigService implements ApplicationEventPublisherAware {
         this.eventBus = applicationEventPublisher;
     }
 
-    public void save(ConfigRequest request) {
-        Config oldConfig = repository.get(request.getDataId());
+    public void save(Config request) {
+        Config config = beanMapper.map(request, Config.class);
+        // validate type format by unmarshall
+        config.unmarshall();
 
-        // TODO validate content by type
-        Config newConfig = repository.save(extraConfig(request));
-
-        ConfigChangedEvent event;
-        if (oldConfig != null) {
-            event = ConfigChangedEvent.configUpdated(oldConfig, newConfig);
-        } else {
-            event = ConfigChangedEvent.configCreated(newConfig);
-        }
+        Config old = repository.get(request.getDataId());
+        config = repository.save(config);
+        ConfigChangedEvent event = ConfigChangedEvent.configChangedEvent(old, config);
         eventBus.publishEvent(event);
-    }
-
-    private Config extraConfig(ConfigRequest request) {
-        return beanMapper.map(request, Config.class);
     }
 
     public void delete(String dataId) {
@@ -62,26 +56,4 @@ public class ConfigService implements ApplicationEventPublisherAware {
     public Config get(String dataId) {
         return repository.get(dataId);
     }
-
-//    public Config get(String dataId, String type) {
-//        Type resultType = Type.resolve(type);
-//        if (resultType == null) {
-//            throw new IllegalArgumentException("Invalid type of " + type);
-//        }
-//
-//        Config srcConfig = repository.get(dataId);
-//        if (srcConfig == null) {
-//            return null;
-//        }
-//
-//        Config result = beanMapper.map(srcConfig, Config.class);
-//
-//        // required content type is the same as the stored content type
-//        if (Objects.equals(result.getType(), resultType)) {
-//            return result;
-//        }
-//
-//        // TODO Type converter & checksum calc
-//        return result;
-//    }
 }

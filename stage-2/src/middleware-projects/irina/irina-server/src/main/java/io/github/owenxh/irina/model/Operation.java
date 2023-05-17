@@ -8,7 +8,5 @@ package io.github.owenxh.irina.model;
  */
 public enum Operation {
 
-    ADD,
-    UPDATE,
-    DELETE
+    ADD, UPDATE, DELETE
 }

@@ -24,7 +24,7 @@ public class InMemoryConfigRepository implements ConfigRepository {
     public Config save(Config config) {
         config.setRevision(revision.getAndIncrement());
         config.setLastUpdateTime(System.currentTimeMillis());
-        config.applyChecksum(Algorithm.SHA256);
+        config.checksum(Algorithm.SHA256);
         cache.put(config.getDataId(), config);
         return config;
     }
