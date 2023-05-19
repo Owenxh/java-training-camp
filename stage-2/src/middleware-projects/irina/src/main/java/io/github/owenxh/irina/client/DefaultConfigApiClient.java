@@ -81,8 +81,9 @@ public class DefaultConfigApiClient implements ConfigApi {
             case NOT_MODIFIED:
                 return Optional.empty();
             case OK:
-                if (response.getBody() != null) {
-                    validateConfig(response.getBody().getConfig());
+                ConfigChangedEvent event = response.getBody();
+                if (event != null) {
+                    validateConfig(event.getConfig());
                 }
                 return Optional.ofNullable(response.getBody());
             default:
