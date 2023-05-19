@@ -21,12 +21,10 @@ import com.acme.middleware.rpc.loadbalancer.ServiceInstanceSelector;
 import com.acme.middleware.rpc.service.ServiceInstance;
 import com.acme.middleware.rpc.service.discovery.ServiceDiscovery;
 import io.netty.channel.ChannelFuture;
-import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.util.*;
-import java.util.function.Function;
 
 import static com.acme.middleware.rpc.client.ExchangeFuture.createExchangeFuture;
 import static com.acme.middleware.rpc.client.ExchangeFuture.removeExchangeFuture;
@@ -47,22 +45,11 @@ public class ServiceInvocationHandler implements InvocationHandler {
 
     private final ServiceInstanceSelector selector;
 
-    private final List<RpcRequestInterceptor> interceptors;
-
     public ServiceInvocationHandler(String serviceName, RpcClient rpcClient) {
-        this(serviceName, rpcClient, null);
-    }
-
-    public ServiceInvocationHandler(String serviceName, RpcClient rpcClient, List<RpcRequestInterceptor> interceptors) {
         this.serviceName = serviceName;
         this.rpcClient = rpcClient;
         this.serviceDiscovery = rpcClient.getServiceRegistry();
         this.selector = rpcClient.getSelector();
-        if (interceptors == null || interceptors.size() == 0) {
-            this.interceptors = Collections.emptyList();
-        } else {
-            this.interceptors = Collections.unmodifiableList(interceptors);
-        }
     }
 
     @Override
@@ -74,8 +61,7 @@ public class ServiceInvocationHandler implements InvocationHandler {
 
         // 非 Object 方法实行远程调用
         InvocationRequest request = createRequest(method, args);
-        RpcRequestExecution execution = new InternalRpcRequestExecution((InvocationRequest req) -> execute(req, proxy));
-        return execution.execute(request);
+        return execute(request, proxy);
     }
 
     private Object execute(InvocationRequest request, Object proxy) {
@@ -141,25 +127,4 @@ public class ServiceInvocationHandler implements InvocationHandler {
         return Object.class == method.getDeclaringClass();
     }
 
-    private class InternalRpcRequestExecution implements RpcRequestExecution {
-
-        private final Iterator<RpcRequestInterceptor> iterator;
-        private final Function<InvocationRequest, Object> fn;
-
-        public InternalRpcRequestExecution(Function<InvocationRequest, Object> fn) {
-            this.iterator = interceptors.iterator();
-            this.fn = fn;
-        }
-
-        @Override
-        public Object execute(@NotNull InvocationRequest request) {
-            if (this.iterator.hasNext()) {
-                RpcRequestInterceptor nextInterceptor = this.iterator.next();
-                return nextInterceptor.intercept(request, this);
-            }
-            else {
-                return fn.apply(request);
-            }
-        }
-    }
 }
